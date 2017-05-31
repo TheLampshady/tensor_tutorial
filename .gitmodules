@@ -1,0 +1,3 @@
+[submodule "codelabs"]
+	path = codelabs
+	url = https://github.com/martin-gorner/tensorflow-mnist-tutorial
