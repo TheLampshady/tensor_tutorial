@@ -99,3 +99,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Pycharm settings
+.idea/
+
+# OSX
+.DS_Store
