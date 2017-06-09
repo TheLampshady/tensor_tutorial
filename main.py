@@ -7,14 +7,14 @@ def run():
     mnist = mnist_data.read_data_sets("data", one_hot=True, reshape=False, validation_size=0)
 
     X = tf.placeholder(tf.float32, [None, 28, 28, 1])
-    W = tf.Variable(tf.zeros([784, 10]))
+    W = tf.Variable(tf.zeros([28 * 28, 10]))
     b = tf.Variable(tf.zeros([10]))
 
     # init = tf.initialize_all_variables()
     init = tf.global_variables_initializer()
 
     # model
-    Y = tf.nn.softmax(tf.matmul(tf.reshape(X, [-1, 784]), W) + b)
+    Y = tf.nn.softmax(tf.matmul(tf.reshape(X, [-1, 28 * 28]), W) + b)
     # placeholder for correct labels
     Y_ = tf.placeholder(tf.float32, [None, 10])
 
@@ -41,6 +41,7 @@ def run():
 
     test_data = {X: mnist.test.images, Y_: mnist.test.labels}
     a, c = sess.run([accuracy, cross_entropy], feed_dict=test_data)
+    print(a)
 
 if __name__ == "__main__":
     run()
