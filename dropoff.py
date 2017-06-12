@@ -25,6 +25,7 @@ def run():
     X = tf.placeholder(tf.float32, [None, 28, 28, 1])
     Y_ = tf.placeholder(tf.float32, [None, 10])
     L = tf.placeholder(tf.float32)
+    pkeep = tf.placeholder(tf.float32)
 
     WW = [
         tf.Variable(tf.truncated_normal(
@@ -36,11 +37,9 @@ def run():
     ]
 
     BB = [
-        # tf.Variable(tf.zeros([layers[i]]), "Bias" + str(i))
         tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
         for i in range(1, len(layers))
     ]
-
 
     # model
     Y = tf.reshape(X, [-1, 28 * 28])
@@ -50,6 +49,7 @@ def run():
         name = "activate_" + str(i)
         # Y = tf.nn.sigmoid(tf.matmul(Y, WW[i], name=name) + BB[i])
         Y = tf.nn.relu(tf.matmul(Y, WW[i], name=name) + BB[i])
+        Y = tf.nn.dropout(Y, pkeep)
 
     Ylogits = tf.matmul(Y, WW[i+1]) + BB[i+1]
     Y = tf.nn.softmax(Ylogits)
@@ -77,12 +77,21 @@ def run():
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)
         learning_rate = lrmin + (lrmax - lrmin) * exp(-i / decay_speed)
-        train_data = {X: batch_X, Y_: batch_Y, L: learning_rate}
+        train_data = {
+            X: batch_X,
+            Y_: batch_Y,
+            L: learning_rate,
+            pkeep: 0.9
+        }
 
         # train
         sess.run(train_step, feed_dict=train_data)
 
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
+    test_data = {
+        X: mnist.test.images,
+        Y_: mnist.test.labels,
+        pkeep: 1.0
+    }
     a, c = sess.run([accuracy, cross_entropy], feed_dict=test_data)
     print(a)
 

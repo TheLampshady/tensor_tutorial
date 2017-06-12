@@ -11,36 +11,39 @@ def run():
     lrmax = 0.003
     lrmin = 0.00001
     decay_speed = 2000.0
-
-    layers = [
-        28 * 28,
-        200,
-        100,
-        60,
-        30,
-        10
-    ]
+    stddev = 0.1
 
     # Place holders
     X = tf.placeholder(tf.float32, [None, 28, 28, 1])
     Y_ = tf.placeholder(tf.float32, [None, 10])
     L = tf.placeholder(tf.float32)
+    # pkeep = tf.placeholder(tf.float32)
+    #
+    # layers = [
+    #     28 * 28,
+    #     200,
+    #     100,
+    #     60,
+    #     30,
+    #     10
+    # ]
+    #
+    # WW = [
+    #     tf.Variable(tf.truncated_normal(
+    #         [layers[i], layers[i+1]],
+    #         stddev=0.1,
+    #         name="Weight" + str(i)
+    #     ))
+    #     for i in range(len(layers)-1)
+    # ]
+    #
+    # BB = [
+    #     tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
+    #     for i in range(1, len(layers))
+    # ]
 
-    WW = [
-        tf.Variable(tf.truncated_normal(
-            [layers[i], layers[i+1]],
-            stddev=0.1,
-            name="Weight" + str(i)
-        ))
-        for i in range(len(layers)-1)
-    ]
-
-    BB = [
-        # tf.Variable(tf.zeros([layers[i]]), "Bias" + str(i))
-        tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
-        for i in range(1, len(layers))
-    ]
-
+    W1 = tf.Variable(tf.truncated_normal([5, 5, 1, 4], stddev=stddev))
+    B1 = tf.Variable(tf.ones([4])/10)
 
     # model
     Y = tf.reshape(X, [-1, 28 * 28])
@@ -50,6 +53,7 @@ def run():
         name = "activate_" + str(i)
         # Y = tf.nn.sigmoid(tf.matmul(Y, WW[i], name=name) + BB[i])
         Y = tf.nn.relu(tf.matmul(Y, WW[i], name=name) + BB[i])
+        Y = tf.nn.dropout(Y, pkeep)
 
     Ylogits = tf.matmul(Y, WW[i+1]) + BB[i+1]
     Y = tf.nn.softmax(Ylogits)
@@ -77,12 +81,21 @@ def run():
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)
         learning_rate = lrmin + (lrmax - lrmin) * exp(-i / decay_speed)
-        train_data = {X: batch_X, Y_: batch_Y, L: learning_rate}
+        train_data = {
+            X: batch_X,
+            Y_: batch_Y,
+            L: learning_rate,
+            pkeep: 0.9
+        }
 
         # train
         sess.run(train_step, feed_dict=train_data)
 
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
+    test_data = {
+        X: mnist.test.images,
+        Y_: mnist.test.labels,
+        pkeep: 1.0
+    }
     a, c = sess.run([accuracy, cross_entropy], feed_dict=test_data)
     print(a)
 
