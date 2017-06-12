@@ -1,5 +1,6 @@
 import tensorflow as tf
 from math import exp
+import functools
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
 
@@ -13,9 +14,15 @@ def run():
     decay_speed = 2000.0
     stddev = 0.1
 
+    w = 28
+    h = 28
+
+    connect_nodes = 200
+    out_nodes = 10
+
     # Place holders
-    X = tf.placeholder(tf.float32, [None, 28, 28, 1])
-    Y_ = tf.placeholder(tf.float32, [None, 10])
+    X = tf.placeholder(tf.float32, [None, w, h, 1])
+    Y_ = tf.placeholder(tf.float32, [None, out_nodes])
     L = tf.placeholder(tf.float32)
     # pkeep = tf.placeholder(tf.float32)
     #
@@ -42,24 +49,60 @@ def run():
     #     for i in range(1, len(layers))
     # ]
 
-    W1 = tf.Variable(tf.truncated_normal([5, 5, 1, 4], stddev=stddev))
-    B1 = tf.Variable(tf.ones([4])/10)
+    filters = [
+        [5, 5],
+        [4, 4],
+        [4, 4],
+    ]
+
+    strides = [
+        1,
+        2,
+        2
+    ]
+
+    channels = [
+        1,
+        4,
+        8,
+        12
+    ]
+
+    img_reduce = functools.reduce((lambda x, y: x * y), strides)
+    conv_nodes = int((w / img_reduce) * (h / img_reduce) * (channels[-1]))
+
+    WW = [
+        tf.Variable(tf.truncated_normal(filters[i] + channels[i:i+2], stddev=stddev))
+        for i in range(len(filters))
+    ]
+
+    WConnect = tf.Variable(tf.truncated_normal([conv_nodes, connect_nodes], stddev=stddev))
+    WOutput = tf.Variable(tf.truncated_normal([connect_nodes, out_nodes], stddev=stddev))
+
+    BB = [
+        tf.Variable(tf.truncated_normal([channels[i]], stddev=stddev))
+        for i in range(1, len(channels))
+    ]
+
+    BConnect = tf.Variable(tf.ones([connect_nodes]) / 10)
+    BOutput = tf.Variable(tf.ones([out_nodes]) / 10)
+
 
     # model
-    Y = tf.reshape(X, [-1, 28 * 28])
 
-    i = 0
-    for i in range(len(layers)-2):
-        name = "activate_" + str(i)
-        # Y = tf.nn.sigmoid(tf.matmul(Y, WW[i], name=name) + BB[i])
-        Y = tf.nn.relu(tf.matmul(Y, WW[i], name=name) + BB[i])
-        Y = tf.nn.dropout(Y, pkeep)
+    Y = X
 
-    Ylogits = tf.matmul(Y, WW[i+1]) + BB[i+1]
+    for i in range(len(strides)):
+        conv_layer = tf.nn.conv2d(Y, WW[i], strides=[1, strides[i], strides[i], 1], padding='SAME')
+        Y = tf.nn.relu(conv_layer + BB[i])
+
+    YY = tf.reshape(Y, [-1, conv_nodes])
+    YConnect = tf.nn.relu(tf.matmul(YY, WConnect) + BConnect)
+
+    Ylogits = tf.matmul(YConnect, WOutput) + BOutput
     Y = tf.nn.softmax(Ylogits)
 
     # loss function
-    # cross_entropy = -tf.reduce_sum(Y_ * tf.log(Y))
     logits = tf.nn.softmax_cross_entropy_with_logits(logits=Ylogits, labels=Y_)
     cross_entropy = tf.reduce_mean(logits) * 100
 
@@ -85,7 +128,6 @@ def run():
             X: batch_X,
             Y_: batch_Y,
             L: learning_rate,
-            pkeep: 0.9
         }
 
         # train
@@ -94,7 +136,6 @@ def run():
     test_data = {
         X: mnist.test.images,
         Y_: mnist.test.labels,
-        pkeep: 1.0
     }
     a, c = sess.run([accuracy, cross_entropy], feed_dict=test_data)
     print(a)
