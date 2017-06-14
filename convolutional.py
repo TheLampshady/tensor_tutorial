@@ -14,6 +14,7 @@ def run():
     decay_speed = 2000.0
     stddev = 0.1
 
+
     w = 28
     h = 28
 
@@ -24,8 +25,8 @@ def run():
     X = tf.placeholder(tf.float32, [None, w, h, 1])
     Y_ = tf.placeholder(tf.float32, [None, out_nodes])
     L = tf.placeholder(tf.float32)
-    # pkeep = tf.placeholder(tf.float32)
-    #
+    pkeep = tf.placeholder(tf.float32)
+
     # layers = [
     #     28 * 28,
     #     200,
@@ -55,17 +56,13 @@ def run():
         [4, 4],
     ]
 
+    # channels = [1, 4, 8, 12]
+    channels = [1, 6, 12, 24]
+
     strides = [
         1,
         2,
         2
-    ]
-
-    channels = [
-        1,
-        4,
-        8,
-        12
     ]
 
     img_reduce = functools.reduce((lambda x, y: x * y), strides)
@@ -98,8 +95,9 @@ def run():
 
     YY = tf.reshape(Y, [-1, conv_nodes])
     YConnect = tf.nn.relu(tf.matmul(YY, WConnect) + BConnect)
+    YDropoff = tf.nn.dropout(YConnect, pkeep)
 
-    Ylogits = tf.matmul(YConnect, WOutput) + BOutput
+    Ylogits = tf.matmul(YDropoff, WOutput) + BOutput
     Y = tf.nn.softmax(Ylogits)
 
     # loss function
@@ -128,6 +126,7 @@ def run():
             X: batch_X,
             Y_: batch_Y,
             L: learning_rate,
+            pkeep: 0.9
         }
 
         # train
@@ -136,7 +135,9 @@ def run():
     test_data = {
         X: mnist.test.images,
         Y_: mnist.test.labels,
+        pkeep: 1.0
     }
+
     a, c = sess.run([accuracy, cross_entropy], feed_dict=test_data)
     print(a)
 
