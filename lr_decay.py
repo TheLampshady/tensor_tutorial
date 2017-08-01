@@ -1,3 +1,5 @@
+# Step 4
+
 import tensorflow as tf
 from math import exp
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
@@ -36,7 +38,6 @@ def run():
     ]
 
     BB = [
-        # tf.Variable(tf.zeros([layers[i]]), "Bias" + str(i))
         tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
         for i in range(1, len(layers))
     ]
@@ -48,7 +49,6 @@ def run():
     i = 0
     for i in range(len(layers)-2):
         name = "activate_" + str(i)
-        # Y = tf.nn.sigmoid(tf.matmul(Y, WW[i], name=name) + BB[i])
         Y = tf.nn.relu(tf.matmul(Y, WW[i], name=name) + BB[i])
 
     Ylogits = tf.matmul(Y, WW[i+1]) + BB[i+1]
