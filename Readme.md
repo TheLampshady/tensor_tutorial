@@ -1,5 +1,10 @@
+# Installation
 
+`pip3 install jupyter`
 
+`jupyter notebook`
+
+Copy Auth token to run in other environments
 
 
 

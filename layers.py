@@ -23,7 +23,7 @@ def run():
     Y1 = tf.nn.sigmoid(tf.matmul(XX, W1) + B1)
     Y1 = tf.nn.sigmoid(tf.matmul(XX, W1) + B1)
 
-    # Regressino function
+    # Regression function
     # Y = tf.nn.softmax(tf.matmul(XX), W) + b)
     Y = tf.nn.softmax(tf.matmul(Y1, W2) + B2)
 
