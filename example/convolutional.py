@@ -27,29 +27,6 @@ def run():
     L = tf.placeholder(tf.float32)
     pkeep = tf.placeholder(tf.float32)
 
-    # layers = [
-    #     28 * 28,
-    #     200,
-    #     100,
-    #     60,
-    #     30,
-    #     10
-    # ]
-    #
-    # WW = [
-    #     tf.Variable(tf.truncated_normal(
-    #         [layers[i], layers[i+1]],
-    #         stddev=0.1,
-    #         name="Weight" + str(i)
-    #     ))
-    #     for i in range(len(layers)-1)
-    # ]
-    #
-    # BB = [
-    #     tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
-    #     for i in range(1, len(layers))
-    # ]
-
     filters = [
         [5, 5],
         [4, 4],

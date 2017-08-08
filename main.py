@@ -1,4 +1,4 @@
-from example.ann_tensor_board import run
+from example.basic import run
 
 
 if __name__ == "__main__":

@@ -94,15 +94,15 @@ def run():
     optimizer = tf.train.AdamOptimizer(L)
     train_step = optimizer.minimize(loss)
 
+    # ------- Accuracy -------
+    is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
+    accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+
     # ------- Tensor Graph -------
-    # Start Tensor Graph
     init = tf.global_variables_initializer()
 
     sess = tf.Session()
     sess.run(init)
-
-    # Tensor Board
-    tensor_graph = tf.get_default_graph()
 
     # ------- Training -------
     for epoch in range(epoch_total):
@@ -127,10 +127,6 @@ def run():
 
         # Display logs per epoch step
         print("Epoch:", '%04d' % (epoch + 1), "cost=", "{:.9f}".format(avg_cost))
-
-    # ------- Accuracy -------
-    is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
-    accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
     # ------- Testing -------
     test_data = {X: mnist.test.images, Y_: mnist.test.labels, pkeep: 1.0}

@@ -52,10 +52,10 @@ def run():
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
-    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input")
-    Y_ = tf.placeholder(tf.float32, [None, 10], name="Output")
-    L = tf.placeholder(tf.float32, name="Learning_Rate")
-    pkeep = tf.placeholder(tf.float32, name="Percentage_Keep")
+    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
+    Y_ = tf.placeholder(tf.float32, [None, 10], name="Output_PH")
+    L = tf.placeholder(tf.float32, name="Learning_Rate_PH")
+    pkeep = tf.placeholder(tf.float32, name="Per_Keep_PH")
 
     # ----- Weights and Bias -----
     WW = [
@@ -107,7 +107,7 @@ def run():
 
     # ------- Accuracy -------
     # with tf.name_scope('Accuracy'):
-    is_correct = tf.equal(tf.argmax(Y, 1, name="y_arg_max"), tf.argmax(Y_, 1, name="target"))
+    is_correct = tf.equal(tf.argmax(Y, 1, name="max_result"), tf.argmax(Y_, 1, name="target"))
     accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
     # ------- Tensor Graph -------
