@@ -38,7 +38,7 @@ def run():
     ]
 
     BB = [
-        tf.Variable(tf.ones([layers[i]])/10, "Bias" + str(i))
+        tf.Variable(tf.ones([layers[i]])/10, name="Bias" + str(i))
         for i in range(1, len(layers))
     ]
 
