@@ -58,6 +58,7 @@ def run():
     sess.run(init)
 
     # Tensor Board
+    # - Exports the model to be used by Tensor Board
     tensor_graph = tf.get_default_graph()
     tf.summary.FileWriter(logs_path, graph=tensor_graph)
 
