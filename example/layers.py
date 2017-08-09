@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from os.path import basename, splitext
 
 import tensorflow as tf
@@ -34,12 +35,12 @@ def run():
     # ----- Weights and Bias -----
     # - Added Hidden Layer (W2 and B2)
     W1 = tf.Variable(
-        tf.truncated_normal([area, 200], stddev=0.1),
+        tf.truncated_normal([area, 200], stddev=0.1, name="Weight_Init_1"),
         name="Weight_1"
     )
 
     W2 = tf.Variable(
-        tf.truncated_normal([200, output], stddev=0.1),
+        tf.truncated_normal([200, output], stddev=0.1, name="Weight_Init_2"),
         name="Weight_2"
     )
 
@@ -83,7 +84,7 @@ def run():
     tensor_graph = tf.get_default_graph()
     summary_writer = tf.summary.FileWriter(logs_path, graph=tensor_graph)
 
-
+    # ------- Training -------
     for i in range(1000):
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)

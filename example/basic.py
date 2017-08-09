@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from os.path import basename, splitext
 
 import tensorflow as tf
@@ -62,6 +63,7 @@ def run():
     tensor_graph = tf.get_default_graph()
     tf.summary.FileWriter(logs_path, graph=tensor_graph)
 
+    # ------- Training -------
     for i in range(1000):
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)

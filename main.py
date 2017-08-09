@@ -1,4 +1,4 @@
-from example.basic import run
+from example.layers import run
 
 
 if __name__ == "__main__":
