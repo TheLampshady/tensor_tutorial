@@ -22,7 +22,7 @@ def run():
     # Data
     epoch_total = 3
 
-    batch_total = 1000
+    batch_total = 1001
     batch_size = 100
     test_freq = 10 * epoch_total
 

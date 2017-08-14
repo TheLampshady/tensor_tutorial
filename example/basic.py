@@ -22,7 +22,7 @@ def run():
     lr = 0.003
 
     # Data
-    batch_total = 1000
+    batch_total = 1001
     batch_size = 100
     test_freq = 10
 
