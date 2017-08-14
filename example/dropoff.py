@@ -110,11 +110,15 @@ def run():
     with tf.name_scope('Optimizer'):
         optimizer = tf.train.AdamOptimizer(L)
         train_step = optimizer.minimize(loss, name="minimize")
+        tf.summary.scalar('Learn_Rate', L)
 
     # ------- Accuracy -------
     with tf.name_scope('Accuracy'):
         with tf.name_scope('correct_prediction'):
-            is_correct = tf.equal(tf.argmax(Y, 1, name="Max_Result"), tf.argmax(Y_, 1, name="Target"))
+            is_correct = tf.equal(
+                tf.argmax(Y, 1, name="Max_Result"),
+                tf.argmax(Y_, 1, name="Target")
+            )
         with tf.name_scope('accuracy'):
             accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
     tf.summary.scalar('Accuracies', accuracy)
@@ -136,7 +140,7 @@ def run():
     # ------- Training -------
     train_operations = [train_step, loss, merged_summary_op]
     test_operations = [accuracy, loss, merged_summary_op]
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels, keep_prob: 1.0}
+    test_data = {X: mnist.test.images, Y_: mnist.test.labels, keep_prob: 1.0, L: 0}
 
     for epoch in range(epoch_total):
         avg_cost = 0.
