@@ -21,7 +21,10 @@ def run():
 
     lr = 0.003
 
+    # Data
     batch_total = 1000
+    batch_size = 100
+    test_freq = 10
 
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
@@ -41,11 +44,11 @@ def run():
             biases = tf.Variable(tf.zeros([10], name="Biases_Init"), name="Biases")
             variable_summaries(biases, "Biases")
 
-    # ------- Activation Function -------
-    Y = tf.nn.softmax(
-        tf.matmul(input_flat, weights, name="Product") + biases,
-        name="Output_Result"
-    )
+    # ------- Regression Function -------
+    with tf.name_scope('Wx_plus_b'):
+        logits = tf.matmul(input_flat, weights, name="Product") + biases
+        tf.summary.histogram('Pre_Activations', logits)
+    Y = tf.nn.softmax(logits, name="Output_Result")
 
     # ------- Loss Function -------
     loss = -tf.reduce_sum(Y_ * tf.log(Y), name="Loss")
@@ -80,21 +83,13 @@ def run():
 
     # ------- Training -------
     avg_cost = 0.
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
     train_operations = [train_step, loss, merged_summary_op]
     test_operations = [accuracy, loss, merged_summary_op]
+    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
 
     for step in range(batch_total):
-        if step % 10 == 0:
-            acc, cross_loss, summary = sess.run(
-                test_operations,
-                feed_dict=test_data
-            )
-            test_writer.add_summary(summary, step)
-            print('Accuracy at step %s: %s' % (step, acc))
-
         # load batch of images and correct answers
-        batch_X, batch_Y = mnist.train.next_batch(100)
+        batch_X, batch_Y = mnist.train.next_batch(batch_size)
         train_data = {X: batch_X, Y_: batch_Y}
 
         # train
@@ -105,6 +100,14 @@ def run():
 
         avg_cost += cross_loss / batch_total
         train_writer.add_summary(summary, step)
+
+        if step % test_freq == 0:
+            acc, cross_loss, summary = sess.run(
+                test_operations,
+                feed_dict=test_data
+            )
+            test_writer.add_summary(summary, step)
+            print('Accuracy at step %s: %s' % (step, acc))
 
     print("Cost: ", "{:.9f}".format(avg_cost))
 

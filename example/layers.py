@@ -29,7 +29,10 @@ def run():
 
     hidden_layer = 200
 
+    # Data
     batch_total = 1000
+    batch_size = 100
+    test_freq = 10
 
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
@@ -38,7 +41,7 @@ def run():
     X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, 10], name="Output_PH")
 
-    XX = tf.reshape(X, [-1, area])
+    input_flat = tf.reshape(X, [-1, area])
 
     # ----- Weights and Bias -----
     # - Added Hidden Layer (W2 and B2)
@@ -66,15 +69,17 @@ def run():
 
     # ------- Activation Function -------
     # - Used for Hidden (2nd) Layer
-    Y1 = tf.nn.sigmoid(
-        tf.matmul(XX, weights1, name="Product") + biases1
-    )
+    with tf.name_scope('Wx_plus_b'):
+        preactivate = tf.matmul(input_flat, weights1, name="Product") + biases1
+        tf.summary.histogram('Pre_Activations', preactivate)
+        activations = tf.nn.sigmoid(preactivate)
+        tf.summary.histogram('Activations', activations)
 
     # ------- Regression Functions -------
-    Y = tf.nn.softmax(
-        tf.matmul(Y1, weights2, name="Product") + biases2,
-        name="Output_Result"
-    )
+    with tf.name_scope('Wx_plus_b'):
+        logits = tf.matmul(activations, weights2, name="Product") + biases2
+        tf.summary.histogram('Pre_Activations', logits)
+    Y = tf.nn.softmax(logits, name="Output_Result")
 
     # ------- Loss Function -------
     loss = -tf.reduce_sum(Y_ * tf.log(Y), name="Loss")
@@ -98,21 +103,42 @@ def run():
     sess.run(init)
 
     # Tensor Board
+    # - Exports the model to be used by Tensor Board
+    merged_summary_op = tf.summary.merge_all()
+
     tensor_graph = tf.get_default_graph()
-    summary_writer = tf.summary.FileWriter(logs_path, graph=tensor_graph)
+    train_writer = tf.summary.FileWriter(logs_path + "/train", graph=tensor_graph)
+    test_writer = tf.summary.FileWriter(logs_path + "/test")
 
     # ------- Training -------
-    for i in range(batch_total):
+    avg_cost = 0.
+    train_operations = [train_step, loss, merged_summary_op]
+    test_operations = [accuracy, loss, merged_summary_op]
+    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
+
+    for step in range(batch_total):
         # load batch of images and correct answers
-        batch_X, batch_Y = mnist.train.next_batch(100)
+        batch_X, batch_Y = mnist.train.next_batch(batch_size)
         train_data = {X: batch_X, Y_: batch_Y}
 
         # train
-        _, c = sess.run([train_step, loss], feed_dict=train_data)
+        _, cross_loss, summary = sess.run(
+            train_operations,
+            feed_dict=train_data
+        )
 
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
-    a, c = sess.run([accuracy, loss], feed_dict=test_data)
-    print(a)
+        avg_cost += cross_loss / batch_total
+        train_writer.add_summary(summary, step)
+
+        if step % test_freq == 0:
+            acc, cross_loss, summary = sess.run(
+                test_operations,
+                feed_dict=test_data
+            )
+            test_writer.add_summary(summary, step)
+            print('Accuracy at step %s: %s' % (step, acc))
+
+    print("Cost: ", "{:.9f}".format(avg_cost))
 
 if __name__ == "__main__":
     run()

@@ -5,6 +5,8 @@ from os.path import basename, splitext
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
+from tensor_functions import bias_variable, weight_variable
+
 
 def run():
     """
@@ -34,8 +36,10 @@ def run():
     channels = 1
 
     # Data
+    epoch_total = 3
     batch_total = 1000
     batch_size = 100
+    test_freq = 10 * epoch_total
 
     # Learning Rate Values
     lrmax = 0.003
@@ -48,70 +52,71 @@ def run():
     # Drop-off
     keep_ratio = 0.9
 
-    # Epoch
-    epoch_total = 1
-
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
     X = tf.placeholder(tf.float32, [None, width, height, channels], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
+
     L = tf.placeholder(tf.float32, name="Learning_Rate_PH")
-    pkeep = tf.placeholder(tf.float32, name="Per_Keep_PH")
+    keep_prob = tf.placeholder(tf.float32, name="Per_Keep_PH")
+
+    with tf.name_scope('input_reshape'):
+        Y = tf.reshape(X, [-1, area])
+        image_shaped_input = tf.reshape(X, [-1, width, width, channels])
+        tf.summary.image('input', image_shaped_input, output)
 
     # ----- Weights and Bias -----
-    WW = [
-        tf.Variable(tf.truncated_normal(
-            [layers[i], layers[i + 1]],
-            stddev=0.1,
-            name="Init_Weights"
-        ), name="Weights")
-        for i in range(len(layers) - 1)
-        ]
-
-    BB = [
-        tf.Variable(
-            tf.ones([layers[i]]) / 10,
-            name="Bias"
-        )
-        for i in range(1, len(layers))
-    ]
+    weights = []
+    biases = []
+    for i in range(len(layers) - 1):
+        with tf.name_scope('Layer'):
+            weights.append(weight_variable([layers[i], layers[i + 1]]))
+            biases.append(bias_variable([layers[i+1]]))
 
     # ---------------- Operations ----------------
-
-    # Flatten image
-    Y = tf.reshape(X, [-1, area])
 
     # ------- Activation Function -------
     i = 0
     for i in range(len(layers) - 2):
-        result = tf.add(tf.matmul(Y, WW[i], name="Product_Weight"), BB[i], name="Plus_Bias")
-        Y = tf.nn.relu(result)
-        Y = tf.nn.dropout(Y, pkeep, name="Dropout")
+        with tf.name_scope('Wx_plus_b'):
+            preactivate = tf.matmul(Y, weights[i], name="Product") + biases[i]
+            tf.summary.histogram('Pre_Activations', preactivate)
+            activations = tf.nn.relu(preactivate)
+            tf.summary.histogram('Activations', activations)
+
+        with tf.name_scope('Dropout'):
+            Y = tf.nn.dropout(activations, keep_prob, name="Dropout")
+            tf.summary.scalar('Keep_Probability', keep_prob)
 
     # ------- Regression Functions -------
     i += 1
-    logits = tf.add(tf.matmul(Y, WW[i], name="Product"), BB[i], name="Plus")
-    Y = tf.nn.softmax(logits, name="Final_Result")
-
-    # ---------------- Operations ----------------
+    with tf.name_scope('Wx_plus_b'):
+        logits = tf.matmul(Y, weights[i], name="Product") + biases[i]
+        tf.summary.histogram('Pre_Activations', logits)
+    Y = tf.nn.softmax(logits, name="Output_Result")
 
     # ------- Loss Function -------
-    # with tf.name_scope('Loss'):
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
-        logits=logits, labels=Y_, name="cross_entropy")
-    loss = tf.reduce_mean(cross_entropy, name="loss") * 100
+    with tf.name_scope('Loss'):
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(
+            logits=logits, labels=Y_, name="Cross_Entropy")
+        with tf.name_scope('Total'):
+            loss = tf.reduce_mean(cross_entropy, name="loss") * 100
+    tf.summary.scalar('Losses', loss)
 
     # ------- Optimizer -------
-    # with tf.name_scope('Optimizer'):
-    optimizer = tf.train.AdamOptimizer(L, name="adam")
-    train_step = optimizer.minimize(loss, name="minimize")
+    with tf.name_scope('Optimizer'):
+        optimizer = tf.train.AdamOptimizer(L)
+        train_step = optimizer.minimize(loss, name="minimize")
 
     # ------- Accuracy -------
-    # with tf.name_scope('Accuracy'):
-    is_correct = tf.equal(tf.argmax(Y, 1, name="Max_Result"), tf.argmax(Y_, 1, name="Target"))
-    accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+    with tf.name_scope('Accuracy'):
+        with tf.name_scope('correct_prediction'):
+            is_correct = tf.equal(tf.argmax(Y, 1, name="Max_Result"), tf.argmax(Y_, 1, name="Target"))
+        with tf.name_scope('accuracy'):
+            accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+    tf.summary.scalar('Accuracies', accuracy)
 
     # ------- Tensor Graph -------
     # Start Tensor Graph
@@ -121,37 +126,66 @@ def run():
     sess.run(init)
 
     # Tensor Board
+    merged_summary_op = tf.summary.merge_all()
+
     tensor_graph = tf.get_default_graph()
-    summary_writer = tf.summary.FileWriter(logs_path, graph=tensor_graph)
+    train_writer = tf.summary.FileWriter(logs_path + "/train", graph=tensor_graph)
+    test_writer = tf.summary.FileWriter(logs_path + "/test")
 
     # ------- Training -------
+    train_operations = [train_step, loss, merged_summary_op]
+    test_operations = [accuracy, loss, merged_summary_op]
+    test_data = {X: mnist.test.images, Y_: mnist.test.labels, keep_prob: 1.0}
+
     for epoch in range(epoch_total):
         avg_cost = 0.
 
         for i in range(batch_total):
+            step = (batch_total * epoch) + i
+
+            # ----- Train step -----
             batch_X, batch_Y = mnist.train.next_batch(batch_size)
-            learning_rate = lrmin + (lrmax - lrmin) * exp(-i / decay_speed)
+
+            learning_rate = lrmin + (lrmax - lrmin) * exp(-step / decay_speed)
             train_data = {
                 X: batch_X,
                 Y_: batch_Y,
                 L: learning_rate,
-                pkeep: keep_ratio
+                keep_prob: keep_ratio
             }
 
-            _, c = sess.run(
-                [train_step, loss], # Operations to run
-                feed_dict=train_data
-            )
+            # Record execution stats
+            if step % 100 == 99:
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
 
-            avg_cost += c / batch_total
+                _, cross_loss, summary = sess.run(
+                    train_operations,
+                    feed_dict=train_data,
+                    options=run_options,
+                    run_metadata=run_metadata
+                )
+
+            else:
+                _, cross_loss, summary = sess.run(
+                    train_operations,
+                    feed_dict=train_data
+                )
+
+            # ----- Test Step -----
+            if step % test_freq == 0:
+                acc, cross_loss, summary = sess.run(
+                    test_operations,
+                    feed_dict=test_data
+                )
+                test_writer.add_summary(summary, step)
+                print('Accuracy at step %s: %s' % (step, acc))
+
+            avg_cost += cross_loss / batch_total
+            train_writer.add_summary(summary, step)
 
         # Display logs per epoch step
         print("Epoch:", '%04d' % (epoch + 1), "cost=", "{:.9f}".format(avg_cost))
-
-    # ------- Testing -------
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels, pkeep: 1.0}
-    a, c = sess.run([accuracy, loss], feed_dict=test_data)
-    print(a)
 
 
 if __name__ == "__main__":
