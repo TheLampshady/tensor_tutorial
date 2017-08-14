@@ -8,8 +8,21 @@ from tensor_functions import variable_summaries
 
 
 def run():
+    """
+    Example 1
+    Single Layer
+    Activation function: sigmoid
+    Optimizer: GradientDescentOptimizer
+    :return:
+    """
+
     # Download images and labels into mnist.test (10K images+labels) and mnist.train (60K images+labels)
-    mnist = mnist_data.read_data_sets("data", one_hot=True, reshape=False, validation_size=0)
+    mnist = mnist_data.read_data_sets(
+        "data",
+        one_hot=True,
+        reshape=False,
+        validation_size=0
+    )
 
     # ------ Constants -------
 

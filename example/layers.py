@@ -8,8 +8,14 @@ from tensor_functions import variable_summaries
 
 
 def run():
-    # Download images and labels into mnist.test (10K images+labels) and
-    #   mnist.train (60K images+labels)
+    """
+    Example 2
+    Multilayer Perceptron (2 layers)
+    Activation function: sigmoid
+    Optimizer: GradientDescentOptimizer
+    :return:
+    """
+
     mnist = mnist_data.read_data_sets(
         "data",
         one_hot=True,

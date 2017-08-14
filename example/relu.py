@@ -8,7 +8,14 @@ from tensor_functions import bias_variable, weight_variable
 
 
 def run():
-    # Download images and labels into mnist.test (10K images+labels) and mnist.train (60K images+labels)
+    """
+    Example 3
+    Multilayer Perceptron (5 layers)
+    Activation function: relu
+    Optimizer: AdamOptimizer
+    :return:
+    """
+
     mnist = mnist_data.read_data_sets("data", one_hot=True, reshape=False, validation_size=0)
 
     # Image Format

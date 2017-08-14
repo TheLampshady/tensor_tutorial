@@ -10,6 +10,7 @@ from tensor_functions import bias_variable, weight_variable
 
 def run():
     """
+    Example 5
     Multilayer Perceptron (5 layers)
     Drop-off (90% change of keeping a node)
     Dynamic learning rate that reduces as time goes on. (from .003 to 0.00001)
