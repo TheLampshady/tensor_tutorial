@@ -1,20 +1,21 @@
 import tensorflow as tf
 
 
-def variable_summaries(var):
+def variable_summaries(var, histogram_name='histogram'):
     """
     Attach a lot of summaries to a Tensor (for TensorBoard visualization).
     :type var: tf.Variable
+    :type histogram_name: str
     """
-    with tf.name_scope('summaries'):
-        mean = tf.reduce_mean(var)
-        tf.summary.scalar('mean', mean)
-        with tf.name_scope('stddev'):
-            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-        tf.summary.scalar('stddev', stddev)
-        tf.summary.scalar('max', tf.reduce_max(var))
-        tf.summary.scalar('min', tf.reduce_min(var))
-        tf.summary.histogram('histogram', var)
+    mean = tf.reduce_mean(var)
+    tf.summary.scalar('mean', mean)
+    with tf.name_scope('stddev'):
+        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+    tf.summary.scalar('stddev', stddev)
+    tf.summary.scalar('max', tf.reduce_max(var))
+    tf.summary.scalar('min', tf.reduce_min(var))
+
+    tf.summary.histogram(histogram_name, var)
 
 
 def weight_variable(shape, stddev=0.1, enable_summary=True):
@@ -25,11 +26,12 @@ def weight_variable(shape, stddev=0.1, enable_summary=True):
     :type enable_summary: bool
     :rtype: tf.Variable
     """
+    name = 'Weights'
     with tf.name_scope('Weights'):
-        initial = tf.truncated_normal(shape, stddev=stddev, name="Weight_Init")
-        weight = tf.Variable(initial, name="Weight")
+        initial = tf.truncated_normal(shape, stddev=stddev, name="%s_Init" % name)
+        weight = tf.Variable(initial, name=name)
         if enable_summary:
-            variable_summaries(weight)
+            variable_summaries(weight, name)
         return weight
 
 
@@ -41,9 +43,10 @@ def bias_variable(shape, init=0.1, enable_summary=True):
     :type enable_summary: bool
     :rtype: tf.Variable
     """
-    with tf.name_scope('Biases'):
-        initial = tf.constant(init, shape=shape, name="Bias_Init")
-        bias = tf.Variable(initial, name="Bias")
+    name = 'Biases'
+    with tf.name_scope(name):
+        initial = tf.constant(init, shape=shape, name="%s_Init" % name)
+        biases = tf.Variable(initial, name=name)
         if enable_summary:
-            variable_summaries(bias)
-        return bias
+            variable_summaries(biases, name)
+        return biases

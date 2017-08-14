@@ -51,13 +51,13 @@ def run():
     keep_ratio = 0.9
 
     # Epoch
-    epoch_total = 1
+    epoch_total = 2
 
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
-    with tf.name_scope('input'):
+    with tf.name_scope('Input'):
         X = tf.placeholder(tf.float32, [None, width, height, channels], name="Input_PH")
         Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
 
@@ -66,17 +66,16 @@ def run():
 
     with tf.name_scope('input_reshape'):
         Y = tf.reshape(X, [-1, area])
+        image_shaped_input = tf.reshape(X, [-1, width, width, channels])
+        tf.summary.image('input', image_shaped_input, output)
 
     # ----- Weights and Bias -----
-    weights = [
-        weight_variable([layers[i], layers[i + 1]])
-        for i in range(len(layers) - 1)
-        ]
-
-    biases = [
-        bias_variable([layers[i]])
-        for i in range(1, len(layers))
-    ]
+    weights = []
+    biases = []
+    for i in range(len(layers) - 1):
+        with tf.name_scope('Layer'):
+            weights.append(weight_variable([layers[i], layers[i + 1]]))
+            biases.append(bias_variable([layers[i+1]]))
 
     # ---------------- Operations ----------------
 
@@ -84,19 +83,20 @@ def run():
     i = 0
     for i in range(len(layers) - 2):
         with tf.name_scope('Wx_plus_b'):
-            preactivate = tf.add(tf.matmul(Y, weights[i], name="Product"), biases[i], name="Plus")
+            preactivate = tf.matmul(Y, weights[i], name="Product") + biases[i]
             tf.summary.histogram('pre_activations', preactivate)
             activations = tf.nn.relu(preactivate)
             tf.summary.histogram('activations', activations)
 
-        with tf.name_scope('dropout'):
-            tf.summary.scalar('dropout_keep_probability', keep_prob)
+        with tf.name_scope('Dropout'):
             Y = tf.nn.dropout(activations, keep_prob, name="Dropout")
+            tf.summary.scalar('Keep_Probability', keep_prob)
 
     # ------- Regression Functions -------
     i += 1
-    logits = tf.add(tf.matmul(Y, weights[i], name="Product"), biases[i], name="Plus")
-    Y = tf.nn.softmax(logits, name="Final_Result")
+    with tf.name_scope('Wx_plus_b'):
+        logits = tf.matmul(Y, weights[i], name="Product") + biases[i]
+    Y = tf.nn.softmax(logits, name="Output_Result")
 
     # ---------------- Operations ----------------
 
@@ -106,7 +106,7 @@ def run():
             logits=logits, labels=Y_, name="cross_entropy")
         with tf.name_scope('Total'):
             loss = tf.reduce_mean(cross_entropy, name="loss") * 100
-    tf.summary.scalar('Loss', loss)
+    tf.summary.scalar('Losses', loss)
 
     # ------- Optimizer -------
     with tf.name_scope('Optimizer'):
@@ -119,7 +119,7 @@ def run():
             is_correct = tf.equal(tf.argmax(Y, 1, name="Max_Result"), tf.argmax(Y_, 1, name="Target"))
         with tf.name_scope('accuracy'):
             accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
-    tf.summary.scalar('accuracy', accuracy)
+    tf.summary.scalar('Accuracies', accuracy)
 
     # ------- Tensor Graph -------
     # Start Tensor Graph
@@ -144,7 +144,7 @@ def run():
             step = (batch_total * epoch) + i
 
             # ----- Test Step -----
-            if i % 10 == 0:
+            if step % 10 == 0:
                 acc, cross_loss, summary = sess.run(
                     [accuracy, loss, merged_summary_op],
                     feed_dict=test_data
@@ -165,7 +165,7 @@ def run():
 
             train_operations = [train_step, loss, merged_summary_op]
             # Record execution stats
-            if i % 100 == 99:
+            if step % 100 == 99:
                 run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                 run_metadata = tf.RunMetadata()
 

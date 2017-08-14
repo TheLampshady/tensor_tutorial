@@ -4,6 +4,8 @@ from os.path import basename, splitext
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
+from tensor_functions import variable_summaries
+
 
 def run():
     # Download images and labels into mnist.test (10K images+labels) and
@@ -25,6 +27,10 @@ def run():
 
     lr = 0.003
 
+    hidden_layer = 200
+
+    batch_total = 1000
+
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
@@ -32,37 +38,47 @@ def run():
     X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, 10], name="Output_PH")
 
+    XX = tf.reshape(X, [-1, area])
+
     # ----- Weights and Bias -----
     # - Added Hidden Layer (W2 and B2)
-    W1 = tf.Variable(
-        tf.truncated_normal([area, 200], stddev=0.1, name="Weight_Init_1"),
-        name="Weight_1"
-    )
 
-    W2 = tf.Variable(
-        tf.truncated_normal([200, output], stddev=0.1, name="Weight_Init_2"),
-        name="Weight_2"
-    )
-
-    B1 = tf.Variable(tf.zeros([200]), name="Bias_1")
-    B2 = tf.Variable(tf.zeros([output]), name="Bias_2")
-
-    XX = tf.reshape(X, [-1, area])
+    with tf.name_scope('Layer'):
+        with tf.name_scope('Weights'):
+            weights1 = tf.Variable(
+                tf.truncated_normal([area, hidden_layer], stddev=0.1, name="Weights_Init"),
+                name="Weights"
+            )
+            variable_summaries(weights1, "Weights")
+        with tf.name_scope('Biases'):
+            biases1 = tf.Variable(tf.zeros([hidden_layer]), name="Biases")
+            variable_summaries(biases1, "Biases")
+    with tf.name_scope('Layer'):
+        with tf.name_scope('Weights'):
+            weights2 = tf.Variable(
+                tf.truncated_normal([hidden_layer, output], stddev=0.1, name="Weights_Init"),
+                name="Weights"
+            )
+            variable_summaries(weights2, "Weights")
+        with tf.name_scope('Biases'):
+            biases2 = tf.Variable(tf.zeros([output]), name="Biases")
+            variable_summaries(biases2, "Biases")
 
     # ------- Activation Function -------
     # - Used for Hidden (2nd) Layer
     Y1 = tf.nn.sigmoid(
-        tf.add(tf.matmul(XX, W1), B1),
-        name="Activation"
+        tf.matmul(XX, weights1, name="Product") + biases1
     )
 
     # ------- Regression Functions -------
     Y = tf.nn.softmax(
-        tf.add(tf.matmul(Y1, W2), B2),
+        tf.matmul(Y1, weights2, name="Product") + biases2,
+        name="Output_Result"
     )
 
     # ------- Loss Function -------
     loss = -tf.reduce_sum(Y_ * tf.log(Y), name="Loss")
+    tf.summary.scalar('Losses', loss)
 
     # ------- Optimizer -------
     optimizer = tf.train.GradientDescentOptimizer(lr)
@@ -70,10 +86,11 @@ def run():
 
     # ------- Accuracy -------
     is_correct = tf.equal(
-        tf.argmax(Y, 1, name="max_output"),
-        tf.argmax(Y_, 1, name="Target")
+        tf.argmax(Y, 1, name="Max_Output"),
+        tf.argmax(Y_, 1, name="Max_Target")
     )
     accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+    tf.summary.scalar('Accuracies', accuracy)
 
     # ------- Tensor Graph -------
     init = tf.global_variables_initializer()
@@ -85,7 +102,7 @@ def run():
     summary_writer = tf.summary.FileWriter(logs_path, graph=tensor_graph)
 
     # ------- Training -------
-    for i in range(1000):
+    for i in range(batch_total):
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)
         train_data = {X: batch_X, Y_: batch_Y}

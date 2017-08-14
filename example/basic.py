@@ -4,6 +4,8 @@ from os.path import basename, splitext
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
+from tensor_functions import variable_summaries
+
 
 def run():
     # Download images and labels into mnist.test (10K images+labels) and mnist.train (60K images+labels)
@@ -19,6 +21,8 @@ def run():
 
     lr = 0.003
 
+    batch_total = 1000
+
     # Tensor Board Log
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
@@ -26,19 +30,26 @@ def run():
     X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
 
-    # ----- Weights and Bias -----
-    W = tf.Variable(tf.zeros([area, 10], name="Weight_Init"), name="Weight")
-    b = tf.Variable(tf.zeros([10], name="Bias_Init"), name="Bias")
+    input_flat = tf.reshape(X, [-1, area])
 
-    XX = tf.reshape(X, [-1, area])
+    # ----- Weights and Bias -----
+    with tf.name_scope('Layer'):
+        with tf.name_scope('Weights'):
+            weights = tf.Variable(tf.zeros([area, 10], name="Weights_Init"), name="Weights")
+            variable_summaries(weights, "Weights")
+        with tf.name_scope('Biases'):
+            biases = tf.Variable(tf.zeros([10], name="Biases_Init"), name="Biases")
+            variable_summaries(biases, "Biases")
 
     # ------- Activation Function -------
     Y = tf.nn.softmax(
-        tf.add(tf.matmul(XX, W), b)
+        tf.matmul(input_flat, weights, name="Product") + biases,
+        name="Output_Result"
     )
 
     # ------- Loss Function -------
     loss = -tf.reduce_sum(Y_ * tf.log(Y), name="Loss")
+    tf.summary.scalar('Losses', loss)
 
     # ------- Optimizer -------
     optimizer = tf.train.GradientDescentOptimizer(lr)
@@ -47,9 +58,10 @@ def run():
     # ------- Accuracy -------
     is_correct = tf.equal(
         tf.argmax(Y, 1, name="Max_Output"),
-        tf.argmax(Y_, 1, name="Target")
+        tf.argmax(Y_, 1, name="Max_Target")
     )
     accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+    tf.summary.scalar('Accuracies', accuracy)
 
     # ------- Tensor Graph -------
     # init = tf.initialize_all_variables()
@@ -60,21 +72,41 @@ def run():
 
     # Tensor Board
     # - Exports the model to be used by Tensor Board
+    merged_summary_op = tf.summary.merge_all()
+
     tensor_graph = tf.get_default_graph()
-    tf.summary.FileWriter(logs_path, graph=tensor_graph)
+    train_writer = tf.summary.FileWriter(logs_path + "/train", graph=tensor_graph)
+    test_writer = tf.summary.FileWriter(logs_path + "/test")
 
     # ------- Training -------
-    for i in range(1000):
+    avg_cost = 0.
+    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
+    train_operations = [train_step, loss, merged_summary_op]
+    test_operations = [accuracy, loss, merged_summary_op]
+
+    for step in range(batch_total):
+        if step % 10 == 0:
+            acc, cross_loss, summary = sess.run(
+                test_operations,
+                feed_dict=test_data
+            )
+            test_writer.add_summary(summary, step)
+            print('Accuracy at step %s: %s' % (step, acc))
+
         # load batch of images and correct answers
         batch_X, batch_Y = mnist.train.next_batch(100)
         train_data = {X: batch_X, Y_: batch_Y}
 
         # train
-        sess.run(train_step, feed_dict=train_data)
+        _, cross_loss, summary = sess.run(
+            train_operations,
+            feed_dict=train_data
+        )
 
-    test_data = {X: mnist.test.images, Y_: mnist.test.labels}
-    a, c = sess.run([accuracy, loss], feed_dict=test_data)
-    print(a)
+        avg_cost += cross_loss / batch_total
+        train_writer.add_summary(summary, step)
+
+    print("Cost: ", "{:.9f}".format(avg_cost))
 
 if __name__ == "__main__":
     run()
