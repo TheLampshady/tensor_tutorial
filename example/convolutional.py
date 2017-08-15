@@ -68,10 +68,10 @@ def run():
     connect_nodes = 200
 
     # Place holders
-    X = tf.placeholder(tf.float32, [None, width, height, 1])
-    Y_ = tf.placeholder(tf.float32, [None, output])
-    L = tf.placeholder(tf.float32)
-    keep_prob = tf.placeholder(tf.float32)
+    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
+    Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
+    L = tf.placeholder(tf.float32, name="Learning_Rate_PH")
+    keep_prob = tf.placeholder(tf.float32, name="Per_Keep_PH")
 
     # Initialize Activation
     Y = X

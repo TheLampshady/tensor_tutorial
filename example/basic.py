@@ -31,6 +31,7 @@ def run():
     height = 28
     area = width * height
     output = 10
+    channel = 1
 
     lr = 0.003
 
@@ -43,10 +44,14 @@ def run():
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
-    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
+    X = tf.placeholder(tf.float32, [None, width, height, channel], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
 
-    input_flat = tf.reshape(X, [-1, area])
+    with tf.name_scope('Input_Reshape'):
+        input_flat = tf.reshape(X, [-1, area])
+        image_shaped_input = tf.reshape(X, [-1, width, width, channel])
+        tf.summary.image('input', image_shaped_input, output)
+
 
     # ----- Weights and Bias -----
     with tf.name_scope('Layer'):

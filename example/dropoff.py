@@ -58,15 +58,12 @@ def run():
 
     # ------- Placeholders -------
     X = tf.placeholder(tf.float32, [None, width, height, channels], name="Input_PH")
+    Y = tf.reshape(X, [-1, area])
+
     Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
 
     L = tf.placeholder(tf.float32, name="Learning_Rate_PH")
     keep_prob = tf.placeholder(tf.float32, name="Per_Keep_PH")
-
-    with tf.name_scope('input_reshape'):
-        Y = tf.reshape(X, [-1, area])
-        image_shaped_input = tf.reshape(X, [-1, width, width, channels])
-        tf.summary.image('input', image_shaped_input, output)
 
     # ----- Weights and Bias -----
     weights = []

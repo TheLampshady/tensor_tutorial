@@ -1,78 +1,52 @@
-# Initialize session
 import tensorflow as tf
 
 
-def init_tensor(sess):
-    W = tf.Variable([.3], tf.float32)
-    b = tf.Variable([-.3], tf.float32)
+def variable_summaries(var, histogram_name='histogram'):
+    """
+    Attach a lot of summaries to a Tensor (for TensorBoard visualization).
+    :type var: tf.Variable
+    :type histogram_name: str
+    """
+    mean = tf.reduce_mean(var)
+    tf.summary.scalar('mean', mean)
+    with tf.name_scope('stddev'):
+        stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+    tf.summary.scalar('stddev', stddev)
+    tf.summary.scalar('max', tf.reduce_max(var))
+    tf.summary.scalar('min', tf.reduce_min(var))
 
-    # Place holders function like parameters of a function
-    x = tf.placeholder(tf.float32)
-    linear_model = W * x + b
-
-    # Adding another paramter
-    y = tf.placeholder(tf.float32)
-    squared_deltas = tf.square(linear_model - y)
-    loss = tf.reduce_sum(squared_deltas)
-    print(sess.run(loss, {x: [1, 2, 3, 4], y: [0, -1, -2, -3]}))
-
-    # Add print operation
-    init = tf.global_variables_initializer()
-    sess.run(init)
-
-    # Needs a session to display
-    print(W.eval())
+    tf.summary.histogram(histogram_name, var)
 
 
-def sample_tensor(sess):
-    node1 = tf.constant(3.0, tf.float32)
-    node2 = tf.constant(4.0)  # also tf.float32 implicitly
-    print(node1, node2)
+def weight_variable(shape, stddev=0.1, enable_summary=True):
+    """
+    Create a weight variable with appropriate initialization.
+    :type shape: list <float>
+    :type stddev: float
+    :type enable_summary: bool
+    :rtype: tf.Variable
+    """
+    name = 'Weights'
+    with tf.name_scope('Weights'):
+        initial = tf.truncated_normal(shape, stddev=stddev, name="%s_Init" % name)
+        weight = tf.Variable(initial, name=name)
+        if enable_summary:
+            variable_summaries(weight, name)
+        return weight
 
-    print(sess.run([node1, node2]))
 
-    # Setting Variables
-    var1 = tf.Variable(3.)
-    var2 = tf.Variable(3, dtype=tf.float32, name="var2")
-
-    print("Var1: ", var1)
-    print("Var2: ", var2)
-
-    place1 = tf.placeholder(tf.float32)
-    place2 = tf.placeholder(tf.float32)
-    adder_node = tf.add(place1, place2)
-
-    W = tf.Variable([.3], tf.float32)
-    b = tf.Variable([-.3], tf.float32)
-    x = tf.placeholder(tf.float32)
-
-    init = tf.global_variables_initializer()
-    sess.run(init)
-
-    # Place holders function like parameters of a function
-    # Tensor Operation
-    linear_model = W * x + b
-
-    # Placeholder for target values
-    y = tf.placeholder(tf.float32)
-
-    # Calculate loss by delta of output and targets.
-    squared_deltas = tf.square(linear_model - y)
-    loss = tf.reduce_sum(squared_deltas)
-
-    print(sess.run(loss, {x: [1, 2, 3, 4], y: [0, -1, -2, -3]}))
-
-    # Manually adjust weights and bias to produce same target. No loss
-    fixW = tf.assign(W, [-1.])
-    fixb = tf.assign(b, [1.])
-    sess.run([fixW, fixb])
-    print(sess.run(loss, {x: [1, 2, 3, 4], y: [0, -1, -2, -3]}))
-
-    optimizer = tf.train.GradientDescentOptimizer(0.01)
-    train = optimizer.minimize(loss)
-
-    sess.run(init)  # reset values to incorrect defaults.
-    for i in range(1000):
-        sess.run(train, {x: [1, 2, 3, 4], y: [0, -1, -2, -3]})
-
-    print(sess.run([W, b]))
+def bias_variable(shape, init=0.1, enable_summary=True):
+    """
+    Create a bias variable with appropriate initialization.
+    :type shape: list <float>
+    :type init: float
+    :type enable_summary: bool
+    :rtype: tf.Variable
+    """
+    name = 'Biases'
+    with tf.name_scope(name):
+        initial = tf.constant(init, shape=shape, name="%s_Init" % name)
+        biases = tf.Variable(initial, name=name)
+        if enable_summary:
+            variable_summaries(biases, name)
+        return biases
