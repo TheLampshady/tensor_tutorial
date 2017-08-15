@@ -30,7 +30,6 @@ def run():
     # Image Format
     width = 28
     height = 28
-    area = width * height
     output = 10
     channels = 1
 
