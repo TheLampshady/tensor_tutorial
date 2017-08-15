@@ -87,9 +87,7 @@ def run():
             activations = tf.nn.relu(preactivate)
             tf.summary.histogram('Activations', activations)
 
-        with tf.name_scope('Dropout'):
-            Y = tf.nn.dropout(activations, keep_prob, name="Dropout")
-            tf.summary.scalar('Keep_Probability', keep_prob)
+        Y = tf.nn.dropout(activations, keep_prob, name="Dropout")
 
     # ------- Regression Functions -------
     i += 1

@@ -31,7 +31,6 @@ def run():
     width = 28
     height = 28
     output = 10
-    channels = 1
 
     # Data
     epoch_total = 3
