@@ -6,16 +6,25 @@ def variable_summaries(var, histogram_name='histogram'):
     Attach a lot of summaries to a Tensor (for TensorBoard visualization).
     :type var: tf.Variable
     :type histogram_name: str
+    :rtype: tf.Tensor
     """
     mean = tf.reduce_mean(var)
-    tf.summary.scalar('mean', mean)
+    mean_scalar = tf.summary.scalar('mean', mean)
     with tf.name_scope('stddev'):
         stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-    tf.summary.scalar('stddev', stddev)
-    tf.summary.scalar('max', tf.reduce_max(var))
-    tf.summary.scalar('min', tf.reduce_min(var))
+    stddev_scalar = tf.summary.scalar('stddev', stddev)
+    max_scalar = tf.summary.scalar('max', tf.reduce_max(var))
+    min_scalar = tf.summary.scalar('min', tf.reduce_min(var))
 
-    tf.summary.histogram(histogram_name, var)
+    histogram = tf.summary.histogram(histogram_name, var)
+
+    return tf.summary.merge([
+        mean_scalar,
+        stddev_scalar,
+        max_scalar,
+        min_scalar,
+        histogram
+    ])
 
 
 def weight_variable(shape, stddev=0.1, enable_summary=True):

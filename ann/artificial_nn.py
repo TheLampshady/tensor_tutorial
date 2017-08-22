@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from math import exp
-from os.path import basename, splitext
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data

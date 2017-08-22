@@ -100,7 +100,11 @@ def run():
     # ------- Activation Function -------
     for i in range(len(strides)):
         with tf.name_scope('Wx_plus_b'):
-            conv_layer = tf.nn.conv2d(Y, weights[i], strides=[1, strides[i], strides[i], 1], padding='SAME')
+            conv_layer = tf.nn.conv2d(
+                Y, weights[i],
+                strides=[1, strides[i], strides[i], 1],
+                padding='SAME'
+            )
             preactivate = conv_layer + biases[i]
             tf.summary.histogram('Pre_Activations', preactivate)
             activations = tf.nn.relu(preactivate)

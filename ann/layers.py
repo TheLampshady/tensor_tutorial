@@ -9,14 +9,13 @@ from tensor_functions import variable_summaries
 
 def run():
     """
-    Example 1
-    Single Layer
+    Example 2
+    Multilayer Perceptron (2 layers)
     Activation function: sigmoid
     Optimizer: GradientDescentOptimizer
     :return:
     """
 
-    # Download images and labels into mnist.test (10K images+labels) and mnist.train (60K images+labels)
     mnist = mnist_data.read_data_sets(
         "data",
         one_hot=True,
@@ -31,9 +30,10 @@ def run():
     height = 28
     area = width * height
     output = 10
-    channel = 1
 
     lr = 0.003
+
+    hidden_layer = 200
 
     # Data
     batch_total = 1001
@@ -44,27 +44,46 @@ def run():
     logs_path = "tensor_log/" + splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
-    X = tf.placeholder(tf.float32, [None, width, height, channel], name="Input_PH")
-    Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
+    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
+    Y_ = tf.placeholder(tf.float32, [None, 10], name="Output_PH")
 
-    with tf.name_scope('Input_Reshape'):
-        input_flat = tf.reshape(X, [-1, area])
-        image_shaped_input = tf.reshape(X, [-1, width, width, channel])
-        tf.summary.image('input', image_shaped_input, output)
-
+    input_flat = tf.reshape(X, [-1, area])
 
     # ----- Weights and Bias -----
+    # - Added Hidden Layer (W2 and B2)
+
     with tf.name_scope('Layer'):
         with tf.name_scope('Weights'):
-            weights = tf.Variable(tf.zeros([area, 10], name="Weights_Init"), name="Weights")
-            variable_summaries(weights, "Weights")
+            weights1 = tf.Variable(
+                tf.truncated_normal([area, hidden_layer], stddev=0.1, name="Weights_Init"),
+                name="Weights"
+            )
+            variable_summaries(weights1, "Weights")
         with tf.name_scope('Biases'):
-            biases = tf.Variable(tf.zeros([10], name="Biases_Init"), name="Biases")
-            variable_summaries(biases, "Biases")
+            biases1 = tf.Variable(tf.ones([hidden_layer])/10, name="Biases")
+            variable_summaries(biases1, "Biases")
+    with tf.name_scope('Layer'):
+        with tf.name_scope('Weights'):
+            weights2 = tf.Variable(
+                tf.truncated_normal([hidden_layer, output], stddev=0.1, name="Weights_Init"),
+                name="Weights"
+            )
+            variable_summaries(weights2, "Weights")
+        with tf.name_scope('Biases'):
+            biases2 = tf.Variable(tf.ones([output])/10, name="Biases")
+            variable_summaries(biases2, "Biases")
 
-    # ------- Regression Function -------
+    # ------- Activation Function -------
+    # - Used for Hidden (2nd) Layer
     with tf.name_scope('Wx_plus_b'):
-        logits = tf.matmul(input_flat, weights, name="Product") + biases
+        preactivate = tf.matmul(input_flat, weights1, name="Product") + biases1
+        tf.summary.histogram('Pre_Activations', preactivate)
+        activations = tf.nn.sigmoid(preactivate)
+        tf.summary.histogram('Activations', activations)
+
+    # ------- Regression Functions -------
+    with tf.name_scope('Wx_plus_b'):
+        logits = tf.matmul(activations, weights2, name="Product") + biases2
         tf.summary.histogram('Pre_Activations', logits)
     Y = tf.nn.softmax(logits, name="Output_Result")
 
@@ -85,9 +104,7 @@ def run():
     tf.summary.scalar('Accuracies', accuracy)
 
     # ------- Tensor Graph -------
-    # init = tf.initialize_all_variables()
     init = tf.global_variables_initializer()
-
     sess = tf.Session()
     sess.run(init)
 
