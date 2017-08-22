@@ -36,12 +36,13 @@ def weight_variable(shape, stddev=0.1, enable_summary=True):
     :rtype: tf.Variable
     """
     name = 'Weights'
-    with tf.name_scope('Weights'):
-        initial = tf.truncated_normal(shape, stddev=stddev, name="%s_Init" % name)
-        weight = tf.Variable(initial, name=name)
+    initial = tf.truncated_normal(shape, stddev=stddev, name="%s_Init" % name)
+    weight = tf.Variable(initial, name=name)
+    with tf.name_scope(name):
         if enable_summary:
             variable_summaries(weight, name)
-        return weight
+
+    return weight
 
 
 def bias_variable(shape, init=0.1, enable_summary=True):
@@ -53,9 +54,10 @@ def bias_variable(shape, init=0.1, enable_summary=True):
     :rtype: tf.Variable
     """
     name = 'Biases'
+    initial = tf.constant(init, shape=shape, name="%s_Init" % name)
+    biases = tf.Variable(initial, name=name)
     with tf.name_scope(name):
-        initial = tf.constant(init, shape=shape, name="%s_Init" % name)
-        biases = tf.Variable(initial, name=name)
         if enable_summary:
             variable_summaries(biases, name)
-        return biases
+
+    return biases
