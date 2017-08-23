@@ -54,11 +54,12 @@ def run():
 
     # ----- Weights and Bias -----
     with tf.name_scope('Layer'):
+        weights = tf.Variable(tf.zeros([area, 10], name="Weights_Init"), name="Weights")
         with tf.name_scope('Weights'):
-            weights = tf.Variable(tf.zeros([area, 10], name="Weights_Init"), name="Weights")
             variable_summaries(weights, "Weights")
+
+        biases = tf.Variable(tf.zeros([10], name="Biases_Init"), name="Biases")
         with tf.name_scope('Biases'):
-            biases = tf.Variable(tf.zeros([10], name="Biases_Init"), name="Biases")
             variable_summaries(biases, "Biases")
 
     # ------- Regression Function -------

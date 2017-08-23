@@ -53,24 +53,27 @@ def run():
     # - Added Hidden Layer (W2 and B2)
 
     with tf.name_scope('Layer'):
+
+        weights1 = tf.Variable(
+            tf.truncated_normal([area, hidden_layer], stddev=0.1, name="Weights_Init"),
+            name="Weights"
+        )
         with tf.name_scope('Weights'):
-            weights1 = tf.Variable(
-                tf.truncated_normal([area, hidden_layer], stddev=0.1, name="Weights_Init"),
-                name="Weights"
-            )
             variable_summaries(weights1, "Weights")
+
+        biases1 = tf.Variable(tf.ones([hidden_layer]) / 10, name="Biases")
         with tf.name_scope('Biases'):
-            biases1 = tf.Variable(tf.ones([hidden_layer])/10, name="Biases")
             variable_summaries(biases1, "Biases")
     with tf.name_scope('Layer'):
+        weights2 = tf.Variable(
+            tf.truncated_normal([hidden_layer, output], stddev=0.1, name="Weights_Init"),
+            name="Weights"
+        )
         with tf.name_scope('Weights'):
-            weights2 = tf.Variable(
-                tf.truncated_normal([hidden_layer, output], stddev=0.1, name="Weights_Init"),
-                name="Weights"
-            )
             variable_summaries(weights2, "Weights")
+
+        biases2 = tf.Variable(tf.ones([output]) / 10, name="Biases")
         with tf.name_scope('Biases'):
-            biases2 = tf.Variable(tf.ones([output])/10, name="Biases")
             variable_summaries(biases2, "Biases")
 
     # ------- Activation Function -------
