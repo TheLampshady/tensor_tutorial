@@ -1,6 +1,7 @@
-import tensorflow as tf
 import numpy as np
 import scipy.misc as misc
+import tensorflow as tf
+from tensorflow.contrib.tensorboard.plugins import projector
 
 
 def variable_summaries(var, histogram_name='histogram'):
@@ -84,3 +85,21 @@ def build_labels(labels, filename='labels_1024.tsv'):
         value = int(np.where(target == 1)[0])
         label_file.write("%d\n" % value)
     label_file.close()
+
+
+def embedding_initializer(layer, embedding_size, writer, image_shape, label_path, sprite_path):
+    nodes = layer.shape[-1]
+    embedding = tf.Variable(tf.zeros([embedding_size, nodes]), name="Embedding")
+    assignment = embedding.assign(layer)
+
+    config = projector.ProjectorConfig()
+    embedding_config = config.embeddings.add()
+    embedding_config.tensor_name = embedding.name
+    embedding_config.metadata_path = label_path
+
+    # Specify the width and height of a single thumbnail.
+    embedding_config.sprite.image_path = sprite_path
+    embedding_config.sprite.single_image_dim.extend(image_shape)
+    projector.visualize_embeddings(writer, config)
+
+    return assignment

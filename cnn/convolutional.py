@@ -18,6 +18,7 @@ def run():
     :return:
     """
 
+    # ----- Data -------
     mnist = mnist_data.read_data_sets(
         "data",
         one_hot=True,
@@ -63,7 +64,7 @@ def run():
     ]
 
     # Tensor Board Log
-    logs_path = "tensor_log/" + splitext(basename(__file__))[0]
+    logs_path = "tensor_log/%s/" % splitext(basename(__file__))[0]
 
     connect_nodes = 200
 
@@ -156,8 +157,8 @@ def run():
     merged_summary_op = tf.summary.merge_all()
 
     tensor_graph = tf.get_default_graph()
-    train_writer = tf.summary.FileWriter(logs_path + "/train", graph=tensor_graph)
-    test_writer = tf.summary.FileWriter(logs_path + "/test")
+    train_writer = tf.summary.FileWriter(logs_path + "train", graph=tensor_graph)
+    test_writer = tf.summary.FileWriter(logs_path + "test")
 
     # ------- Training -------
     train_operations = [train_step, loss, merged_summary_op]

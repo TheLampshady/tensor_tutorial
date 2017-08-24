@@ -44,7 +44,7 @@ def run():
     ]
 
     # Tensor Board Log
-    logs_path = "tensor_log/" + splitext(basename(__file__))[0]
+    logs_path = "tensor_log/%s/" % splitext(basename(__file__))[0]
 
     # ------- Placeholders -------
     X = tf.placeholder(tf.float32, [None, width, height, channels], name="Input_PH")
@@ -112,8 +112,8 @@ def run():
     merged_summary_op = tf.summary.merge_all()
 
     tensor_graph = tf.get_default_graph()
-    train_writer = tf.summary.FileWriter(logs_path + "/train", graph=tensor_graph)
-    test_writer = tf.summary.FileWriter(logs_path + "/test")
+    train_writer = tf.summary.FileWriter(logs_path + "train", graph=tensor_graph)
+    test_writer = tf.summary.FileWriter(logs_path + "test")
 
     # ------- Training -------
     avg_cost = 0.

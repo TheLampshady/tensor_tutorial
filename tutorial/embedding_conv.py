@@ -1,25 +1,24 @@
 #!/usr/bin/env python3
+import functools
 from math import exp
-from os.path import basename, splitext
+from os import path, getcwd
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
-from tensor_functions import bias_variable, weight_variable
+from tensor_functions import bias_variable, weight_variable, \
+    build_sprite, build_labels, embedding_initializer
 
 
 def run():
     """
-    Example 5
-    Multilayer Perceptron (5 layers)
-    Drop-off (90% change of keeping a node)
-    Dynamic learning rate that reduces as time goes on. (from .003 to 0.00001)
-    Activation function: relu
-    Optimizer: AdamOptimizer
+    Convolutional NN
+    Activation function: sigmoid
+    Optimizer: GradientDescentOptimizer
     :return:
     """
 
-    # Download images and labels into mnist.test (10K images+labels) and mnist.train (60K images+labels)
+    # ------ Data ------
     mnist = mnist_data.read_data_sets(
         "data",
         one_hot=True,
@@ -27,17 +26,22 @@ def run():
         validation_size=0
     )
 
+    # Embedding
+    sprite_path = path.join(getcwd(), 'data/sprite_1024.png')
+    label_path = path.join(getcwd(), 'data/labels_1024.tsv')
+
+    build_sprite(mnist.test.images[:1024], sprite_path)
+    build_labels(mnist.test.labels[:1024], label_path)
+
     # ------ Constants -------
 
     # Image Format
     width = 28
     height = 28
-    area = width * height
     output = 10
-    channels = 1
 
     # Data
-    epoch_total = 3
+    epoch_total = 1
     batch_total = 1001
     batch_size = 100
     test_freq = 10 * epoch_total
@@ -47,49 +51,84 @@ def run():
     lrmin = 0.00001
     decay_speed = 2000.0
 
-    # Layers
-    layers = [area, 200, 100, 60, 30, output]
-
     # Drop-off
     keep_ratio = 0.9
 
+    # Layers
+    filters = [
+        [5, 5],
+        [4, 4],
+        [4, 4],
+    ]
+
+    # channels = [1, 4, 8, 12]
+    channels = [1, 6, 12, 24]
+
+    strides = [
+        1,
+        2,
+        2
+    ]
+
+    connect_nodes = 200
+
+    embedding_size = 1024
+
     # Tensor Board Log
-    logs_path = "tensor_log/%s/" % splitext(basename(__file__))[0]
+    logs_path = "tensor_log/%s/" % path.splitext(path.basename(__file__))[0]
+    embed_path = path.join(logs_path, "model.ckpt")
 
-    # ------- Placeholders -------
-    X = tf.placeholder(tf.float32, [None, width, height, channels], name="Input_PH")
-    Y = tf.reshape(X, [-1, area])
-
+    # Place holders
+    X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
     Y_ = tf.placeholder(tf.float32, [None, output], name="Output_PH")
-
     L = tf.placeholder(tf.float32, name="Learning_Rate_PH")
     keep_prob = tf.placeholder(tf.float32, name="Per_Keep_PH")
+
+    # Initialize Activation
+    Y = X
+
+    img_reduce = functools.reduce((lambda x, y: x * y), strides)
+    conv_nodes = int((width / img_reduce) * (height / img_reduce) * (channels[-1]))
 
     # ----- Weights and Bias -----
     weights = []
     biases = []
-    for i in range(len(layers) - 1):
+    for i in range(len(filters)):
         with tf.name_scope('Layer'):
-            weights.append(weight_variable([layers[i], layers[i + 1]]))
-            biases.append(bias_variable([layers[i+1]]))
+            weights.append(weight_variable(filters[i] + channels[i:i+2]))
+            biases.append(bias_variable([channels[i+1]]))
+
+    with tf.name_scope('Layer'):
+        WConnect = weight_variable([conv_nodes, connect_nodes])
+        BConnect = bias_variable([connect_nodes])
+
+    with tf.name_scope('Layer'):
+        WOutput = weight_variable([connect_nodes, output])
+        BOutput = bias_variable([output])
 
     # ---------------- Operations ----------------
 
     # ------- Activation Function -------
-    i = 0
-    for i in range(len(layers) - 2):
+    for i in range(len(strides)):
         with tf.name_scope('Wx_plus_b'):
-            preactivate = tf.matmul(Y, weights[i], name="Product") + biases[i]
+            conv_layer = tf.nn.conv2d(
+                Y, weights[i],
+                strides=[1, strides[i], strides[i], 1],
+                padding='SAME'
+            )
+            preactivate = conv_layer + biases[i]
             tf.summary.histogram('Pre_Activations', preactivate)
             activations = tf.nn.relu(preactivate)
             tf.summary.histogram('Activations', activations)
+            Y = activations
 
-        Y = tf.nn.dropout(activations, keep_prob, name="Dropout")
+    YY = tf.reshape(Y, [-1, conv_nodes])
+    activations = tf.nn.relu(tf.matmul(YY, WConnect) + BConnect)
+    fully_connected_dropout = tf.nn.dropout(activations, keep_prob)
 
     # ------- Regression Functions -------
-    i += 1
     with tf.name_scope('Wx_plus_b'):
-        logits = tf.matmul(Y, weights[i], name="Product") + biases[i]
+        logits = tf.matmul(fully_connected_dropout, WOutput, name="Product") + BOutput
         tf.summary.histogram('Pre_Activations', logits)
     Y = tf.nn.softmax(logits, name="Output_Result")
 
@@ -105,7 +144,6 @@ def run():
     with tf.name_scope('Optimizer'):
         optimizer = tf.train.AdamOptimizer(L)
         train_step = optimizer.minimize(loss, name="minimize")
-        tf.summary.scalar('Learn_Rate', L)
 
     # ------- Accuracy -------
     with tf.name_scope('Accuracy'):
@@ -128,14 +166,43 @@ def run():
     # Tensor Board
     merged_summary_op = tf.summary.merge_all()
 
+    # Writer
     tensor_graph = tf.get_default_graph()
     train_writer = tf.summary.FileWriter(logs_path + "train", graph=tensor_graph)
     test_writer = tf.summary.FileWriter(logs_path + "test")
+
+    # Embeddings
+    # Checkpoint /embedding
+
+    # embedding = tf.Variable(tf.zeros([embedding_size, connect_nodes]), name="test_embedding")
+    # assignment = embedding.assign(fully_connected_dropout)
+    # saver = tf.train.Saver()
+    #
+    # config = projector.ProjectorConfig()
+    # embedding_config = config.embeddings.add()
+    # embedding_config.tensor_name = embedding.name
+    # embedding_config.metadata_path = label_path
+    #
+    # # Specify the width and height of a single thumbnail.
+    # embedding_config.sprite.image_path = sprite_path
+    # embedding_config.sprite.single_image_dim.extend([height, width])
+    # projector.visualize_embeddings(test_writer, config)
+
+    assignment = embedding_initializer(
+        fully_connected_dropout,
+        embedding_size,
+        test_writer,
+        [height, width],
+        label_path,
+        sprite_path
+    )
+    saver = tf.train.Saver()
 
     # ------- Training -------
     train_operations = [train_step, loss, merged_summary_op]
     test_operations = [accuracy, loss, merged_summary_op]
     test_data = {X: mnist.test.images, Y_: mnist.test.labels, keep_prob: 1.0, L: 0}
+    embed_data = {X: mnist.test.images[:embedding_size], Y_: mnist.test.labels[:embedding_size], keep_prob: 1.0, L: 0}
 
     for epoch in range(epoch_total):
         avg_cost = 0.
@@ -180,6 +247,11 @@ def run():
                 )
                 test_writer.add_summary(summary, step)
                 print('Accuracy at step %s: %s' % (step, acc))
+
+            # ----- Embedding -----
+            if step % 500 == 0:
+                sess.run(assignment, feed_dict=embed_data)
+                saver.save(sess, embed_path, step)
 
             avg_cost += cross_loss / batch_total
             train_writer.add_summary(summary, step)
