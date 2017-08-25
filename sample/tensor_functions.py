@@ -1,4 +1,5 @@
 import numpy as np
+from os import getcwd, path
 import scipy.misc as misc
 import tensorflow as tf
 from tensorflow.contrib.tensorboard.plugins import projector
@@ -87,9 +88,24 @@ def build_labels(labels, filename='labels_1024.tsv'):
     label_file.close()
 
 
-def embedding_initializer(layer, embedding_size, writer, image_shape, label_path, sprite_path):
-    nodes = layer.shape[-1]
-    embedding = tf.Variable(tf.zeros([embedding_size, nodes]), name="Embedding")
+def build_mnist_embeddings(data_path, mnist):
+    images = mnist.test.images[:1024]
+    labels = mnist.test.labels[:1024]
+
+    full_data_path = path.join(getcwd(), data_path)
+    sprite_path = path.join(full_data_path, 'sprite_1024.png')
+    label_path = path.join(full_data_path, 'labels_1024.tsv')
+
+    build_sprite(images, sprite_path)
+    build_labels(labels, label_path)
+
+    return sprite_path, label_path
+
+
+def embedding_initializer(layer, embedding_batch, writer, image_shape, sprite_path, label_path):
+    # Embedding
+    nodes = int(layer.shape[-1])
+    embedding = tf.Variable(tf.zeros([embedding_batch, nodes]), name="Embedding")
     assignment = embedding.assign(layer)
 
     config = projector.ProjectorConfig()

@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import functools
 from math import exp
-from os import path, getcwd
+from os import path
 
 import tensorflow as tf
 from tensorflow.examples.tutorials.mnist import input_data as mnist_data
 
 from tensor_functions import bias_variable, weight_variable, \
-    build_sprite, build_labels, embedding_initializer
+    embedding_initializer, build_mnist_embeddings
 
 
 def run():
@@ -25,13 +25,6 @@ def run():
         reshape=False,
         validation_size=0
     )
-
-    # Embedding
-    sprite_path = path.join(getcwd(), 'data/sprite_1024.png')
-    label_path = path.join(getcwd(), 'data/labels_1024.tsv')
-
-    build_sprite(mnist.test.images[:1024], sprite_path)
-    build_labels(mnist.test.labels[:1024], label_path)
 
     # ------ Constants -------
 
@@ -77,6 +70,8 @@ def run():
     # Tensor Board Log
     logs_path = "tensor_log/%s/" % path.splitext(path.basename(__file__))[0]
     embed_path = path.join(logs_path, "model.ckpt")
+
+    sprite_path, label_path = build_mnist_embeddings('data', mnist)
 
     # Place holders
     X = tf.placeholder(tf.float32, [None, width, height, 1], name="Input_PH")
@@ -172,29 +167,13 @@ def run():
     test_writer = tf.summary.FileWriter(logs_path + "test")
 
     # Embeddings
-    # Checkpoint /embedding
-
-    # embedding = tf.Variable(tf.zeros([embedding_size, connect_nodes]), name="test_embedding")
-    # assignment = embedding.assign(fully_connected_dropout)
-    # saver = tf.train.Saver()
-    #
-    # config = projector.ProjectorConfig()
-    # embedding_config = config.embeddings.add()
-    # embedding_config.tensor_name = embedding.name
-    # embedding_config.metadata_path = label_path
-    #
-    # # Specify the width and height of a single thumbnail.
-    # embedding_config.sprite.image_path = sprite_path
-    # embedding_config.sprite.single_image_dim.extend([height, width])
-    # projector.visualize_embeddings(test_writer, config)
-
     assignment = embedding_initializer(
         fully_connected_dropout,
         embedding_size,
         test_writer,
         [height, width],
+        sprite_path,
         label_path,
-        sprite_path
     )
     saver = tf.train.Saver()
 
