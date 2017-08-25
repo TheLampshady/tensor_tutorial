@@ -34,7 +34,7 @@ def run():
 
     lr = 0.003
 
-    hidden_layer = 300
+    hidden_layer = 200
 
     # Data
     batch_total = 1001
