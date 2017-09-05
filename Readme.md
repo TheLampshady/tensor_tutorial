@@ -80,6 +80,9 @@ Approaches for running weighted filters over image channels.
         * [3, 3, 2]
 
 ### Max Pool
+This process reduced the amount of filters that look for features by location.
+If any layers have active features regardless of location max pooling squashes the results.
+
 Ksize reduces the conv dimensions by (conv2d - pool_shape + 1) / strides
 
 Example:
