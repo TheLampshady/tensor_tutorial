@@ -79,6 +79,21 @@ Approaches for running weighted filters over image channels.
     * preactivate_shape = height_2, width_2 output_channel
         * [3, 3, 2]
 
+### Max Pool
+Ksize reduces the conv dimensions by (conv2d - pool_shape + 1) / strides
+
+Example:
+* conv2d = [1, 8, 8, 2]
+* pool_shape = [1, 8, 1, 1]
+* stride_pool_shape = [1, 1, 4, 1]
+
+Result:
+* `(1-1+1)/1`,
+* `(8-8+1)/1`,
+* `(8-1+1)/4`,
+* `(2-1+1)/1`
+
+[1, 1, 2, 2]
 
 # References
 
