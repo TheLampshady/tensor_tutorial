@@ -1,4 +1,4 @@
-tensorflow
-jupyter
-scipy
-pillow
+tensorflow==1.2.1
+jupyter>=1.0.0
+scipy>=0.19.1
+pillow>=4.2.1
