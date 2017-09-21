@@ -119,3 +119,41 @@ def embedding_initializer(layer, embedding_batch, writer, image_shape, sprite_pa
     projector.visualize_embeddings(writer, config)
 
     return assignment
+
+
+def build_text_metadata(index_word_map, logs_path):
+    """
+    Maps word / index to .tsv
+    :type index_word_map: dict
+    :type logs_path: basestring
+    :rtype: basestring
+    """
+    data_path = path.join(logs_path, 'metadata.tsv')
+    if not isinstance(list(index_word_map.keys())[0], int):
+        raise TypeError("Keys must be of type `int`")
+    meta_file = path.join(getcwd(), data_path)
+
+    with open(meta_file, "w") as metadata:
+        metadata.write("Name\tClass\n")
+        for k, v in index_word_map.items():
+            metadata.write("%s\t%d\n" % (v, k))
+
+    return meta_file
+
+
+def embedding_text(embeddings, writer, label_path):
+    """
+    Sets up embeddings and metadata
+    :type embeddings: tf.Variable
+    :type writer: tf.summary.FileWriter
+    :type label_path: basestring
+    """
+    config = projector.ProjectorConfig()
+    embedding_config = config.embeddings.add()
+    embedding_config.tensor_name = embeddings.name
+
+    # Link embedding to its metadata file
+    embedding_config.metadata_path = label_path
+    projector.visualize_embeddings(writer, config)
+
+
