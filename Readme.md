@@ -158,6 +158,50 @@ Result:
 
 [1, 1, 2, 2]
 
+
+### Embeddings
+A mapping from high-dimensional one-hot (Array of 1s and 0s) vectors encoding words
+to lower-dimensional dense vectors (Array of doubles).
+
+Example: 100,000, each word in one-hot representation would be of the same size.
+The corresponding word vector — or word embedding — would be of size 300.
+
+`len(np.unique(embeddings.eval(session=sess)))` == `np.prod(embeddings.shape)`
+
+### RNN Cells
+Sequential NN that takes order of sequences into account.
+
+**Example**: Take this rnn training for example
+```python
+outputs, states = tf.nn.dynamic_rnn(
+    lstm_cell, embed, sequence_length=_seqlens, dtype=tf.float32
+)
+
+output_example, states_example = outsess.run([outputs, states], more_params)
+last_state = 1
+```
+
+Getting the final output for cross_entropy
+* [sentence]: Sentence number
+* [last_sequence]: Last output containing non zero values
+* output_example[sentence]: contains a a list of layers for each word
+in the sentence (sequence).
+* [last_state][sentence]: different states of each sentence number
+* states_example[last_state][sentence]: the final list in
+`output_example[0][sentence]` before padding.
+
+
+```python
+y = 3 # the last list in the sequence containing non zero values
+states_example[last_state][sentence] == output_example[sentence][last_sequence]
+```
+
+* For a Multi-cell RNN, [last_cell] references the output
+
+```python
+states_example[last_state][last_cell][x] == output_example[x][last_sequence]
+```
+
 # References
 
 ## Tensorflow
@@ -165,6 +209,9 @@ https://codelabs.developers.google.com/codelabs/cloud-tensorflow-mnist/#0
 
 ## Convolutional Neural Network
 https://ujjwalkarn.me/2016/08/11/intuitive-explanation-convnets/
+
+## Recurrent Neural Networks
+http://shop.oreilly.com/product/0636920063698.do
 
 ### Padding
 http://deeplearning.net/software/theano/_images/numerical_padding_strides.gif

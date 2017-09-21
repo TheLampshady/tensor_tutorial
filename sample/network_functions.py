@@ -52,7 +52,7 @@ def get_artificial_layer(layer, shape, keep_prob=1.0):
             return dropped
 
 
-def get_recurrent_layer(layer, shape, batch_size, num_classes, keep_prob=1.0):
+def get_recurrent_layer_full(layer, shape, batch_size, num_classes, keep_prob=1.0):
     """
     Example: get_recurrent_layer(x, [element_size, hidden_layer_size], 0.9)
     :param layer: input for layer
@@ -101,3 +101,11 @@ def get_recurrent_layer(layer, shape, batch_size, num_classes, keep_prob=1.0):
             tf.summary.histogram('outputs', logits)
 
         return logits
+
+
+def get_recurrent_layer(layer, hidden_layer_size, keep_prob=1.0):
+    # TensorFlow built-in functions
+    rnn_cell = tf.contrib.rnn.BasicRNNCell(hidden_layer_size)
+    outputs, state = tf.nn.dynamic_rnn(rnn_cell, layer, dtype=tf.float32)
+    tf.summary.histogram('RNN_State', state)
+    return outputs, state
